@@ -45,16 +45,28 @@ Se usa la **Cache API** de Workers (`caches.default`) vía `src/lib/cache.ts`:
 - `purge()` invalida el feed `community` cuando se publica/despublica una pizza.
 - Limitación: el borrado de Cache API es por data center; el `s-maxage` corto acota el staleness. Mejora futura: cache-tags / versión en KV para purga global.
 
-## Desarrollo
+## Desarrollo (malla ZeroTier)
+
+Topología local sobre ZeroTier (IPs fijas):
+
+```
+Front 10.144.0.3:4321  ──PUBLIC_BFF_URL──►  BFF 10.144.0.2:8788  ──SUPABASE_URL──►  Supa 10.144.0.1:54321
+   (FFBORR, astro dev)                     (este repo, wrangler)                  (supabase CLI: data+auth)
+```
 
 ```bash
 npm install
-cp .env.example .env        # PUBLIC_SUPABASE_*  (inlineadas por Astro)
-cp .env.example .dev.vars   # mismas vars para el runtime CF en dev (opcional)
-npm run dev                 # http://localhost:4321
+cp .env.example .env        # PUBLIC_SUPABASE_*  (inlineadas en astro build)
+cp .env.example .dev.vars   # mismas vars para el runtime CF (wrangler)
+npm run dev:zt              # astro build + wrangler pages dev ./dist --ip 0.0.0.0 --port 8788
 ```
 
-CORS: el origen permitido sale de `FRONT_ORIGIN` (wrangler `vars` / Pages env).
+`dev:zt` corre en el **runtime real de Cloudflare (workerd)**, así que el Cache API
+(`caches.default`) funciona de verdad. `--ip 0.0.0.0` lo hace alcanzable en
+`10.144.0.2:8788` desde la malla. Para iterar sin cache, `npm run dev` (astro dev, Node).
+
+- **Supabase**: `PUBLIC_SUPABASE_URL=http://10.144.0.1:54321` + anon key del CLI (ver `.env.example`).
+- **CORS**: `FRONT_ORIGIN=http://10.144.0.3:4321` (en `wrangler.jsonc` → `vars`, y en `.dev.vars`).
 
 ## Deploy
 

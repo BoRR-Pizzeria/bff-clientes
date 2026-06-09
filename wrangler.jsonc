@@ -8,9 +8,10 @@
   "compatibility_flags": ["nodejs_compat"],
   // El adapter @astrojs/cloudflare emite el build a ./dist para Pages.
   "pages_build_output_dir": "./dist",
-  // Variables NO secretas (la anon key de Supabase es pública por diseño).
-  // En producción se setean en el dashboard de Pages; estas son defaults de dev.
+  // Variables NO secretas. En producción se setean en el dashboard de Pages;
+  // estas son los defaults de dev sobre la malla ZeroTier.
+  // FRONT_ORIGIN = origen del front (FFBORR) para CORS.
   "vars": {
-    "FRONT_ORIGIN": "http://localhost:4321"
+    "FRONT_ORIGIN": "http://10.144.0.3:4321"
   }
 }
