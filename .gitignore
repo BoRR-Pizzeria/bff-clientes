@@ -1,0 +1,36 @@
+# build output
+dist/
+.output/
+
+# dependencies
+node_modules/
+
+# environment variables
+.env
+.env.production
+.env.local
+.dev.vars
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# macOS
+.DS_Store
+
+# editors
+.vscode/
+.idea/
+
+# Astro
+.astro/
+
+# Cloudflare
+.wrangler/
+worker-configuration.d.ts
+
+# Claude / agents
+.claude/
+.agents/

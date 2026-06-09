@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bffborr",
+  // Fecha de compatibilidad reciente (revisar contra
+  // https://developers.cloudflare.com/workers/configuration/compatibility-dates/)
+  "compatibility_date": "2026-06-01",
+  // supabase-js usa APIs de Node (stream/crypto) en algunos paths.
+  "compatibility_flags": ["nodejs_compat"],
+  // El adapter @astrojs/cloudflare emite el build a ./dist para Pages.
+  "pages_build_output_dir": "./dist",
+  // Variables NO secretas (la anon key de Supabase es pública por diseño).
+  // En producción se setean en el dashboard de Pages; estas son defaults de dev.
+  "vars": {
+    "FRONT_ORIGIN": "http://localhost:4321"
+  }
+}
