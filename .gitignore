@@ -31,6 +31,5 @@ pnpm-debug.log*
 .wrangler/
 worker-configuration.d.ts
 
-# Claude / agents
+# Claude (symlinks + settings locales). Las skills (.agents/) SÍ se trackean.
 .claude/
-.agents/
