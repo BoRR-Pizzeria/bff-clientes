@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getEnv } from '@/lib/env';
 import { anonClient } from '@/lib/supabase';
-import { json, error, readJson } from '@/lib/http';
+import { json, error, readJson, supabaseError } from '@/lib/http';
 
 export const prerender = false;
 
@@ -14,7 +14,7 @@ export const POST: APIRoute = async (ctx) => {
   const { data, error: e } = await supabase.auth.refreshSession({
     refresh_token: body.refresh_token,
   });
-  if (e) return error(e.message, 401);
+  if (e) return supabaseError(e, 'auth/refresh');
 
   return json({ user: data.user, session: data.session });
 };

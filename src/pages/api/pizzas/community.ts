@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getEnv } from '@/lib/env';
 import { anonClient } from '@/lib/supabase';
-import { json, error } from '@/lib/http';
+import { json, error, supabaseError } from '@/lib/http';
 import { withCache } from '@/lib/cache';
 import { enrichPizzas } from '@/lib/borr/pricing';
 
@@ -32,9 +32,10 @@ export const GET: APIRoute = (ctx) =>
     ]);
 
     if (pizzasRes.error || basesRes.error || ingsRes.error) {
-      const msg =
-        pizzasRes.error?.message ?? basesRes.error?.message ?? ingsRes.error?.message ?? 'unknown';
-      return error(msg, 500);
+      return supabaseError(
+        pizzasRes.error ?? basesRes.error ?? ingsRes.error,
+        'pizzas/community'
+      );
     }
 
     const userIds = Array.from(

@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getEnv } from '@/lib/env';
 import { anonClient } from '@/lib/supabase';
-import { json, error } from '@/lib/http';
+import { json, error, supabaseError } from '@/lib/http';
 import { withCache } from '@/lib/cache';
 
 export const prerender = false;
@@ -17,7 +17,7 @@ export const GET: APIRoute = (ctx) =>
       .order('category', { ascending: true })
       .order('name', { ascending: true });
 
-    if (e) return error(e.message, 500);
+    if (e) return supabaseError(e, 'ingredients');
 
     return json(
       { ingredients: data ?? [] },
