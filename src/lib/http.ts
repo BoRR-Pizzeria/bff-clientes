@@ -1,5 +1,7 @@
 /** Helpers de respuesta JSON y extracción de auth para los endpoints. */
 
+import { sanitizeSupabaseError } from './errors';
+
 export function json(data: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(data), {
     ...init,
@@ -27,4 +29,15 @@ export async function readJson<T>(request: Request): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Convierte un error de Supabase en una Response con mensaje sanitizado.
+ * Loggea el error real internamente; al cliente sólo llega el mensaje genérico.
+ */
+export function supabaseError(e: unknown, context?: string): Response {
+  const prefix = context ? `[${context}]` : '[supabase]';
+  console.error(`${prefix}`, e);
+  const { message, status } = sanitizeSupabaseError(e);
+  return error(message, status);
 }
