@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getEnv } from '@/lib/env';
 import { anonClient, userClient } from '@/lib/supabase';
-import { json, error, getBearer, readJson } from '@/lib/http';
+import { json, error, getBearer, readJson, supabaseError } from '@/lib/http';
 import { withCache, purge } from '@/lib/cache';
 import { RecipeSchema } from '@/lib/recipe';
 
@@ -26,7 +26,8 @@ export const GET: APIRoute = (ctx) =>
       .eq('id', id)
       .single();
 
-    if (e || !data) return error(e?.message ?? 'No se encontró la pizza.', 404);
+    if (e) return supabaseError(e, 'pizzas/[id] GET');
+    if (!data) return error('No se encontró la pizza.', 404);
 
     const parsed = RecipeSchema.safeParse(data.recipe);
     if (!parsed.success) {
@@ -66,7 +67,7 @@ export const PATCH: APIRoute = async (ctx) => {
 
   const supabase = userClient(getEnv(ctx.locals), jwt);
   const { error: e } = await supabase.from('pizzas').update(patch).eq('id', id);
-  if (e) return error(e.message, 500);
+  if (e) return supabaseError(e, 'pizzas/[id] PATCH');
 
   if (typeof patch.is_public === 'boolean') {
     await purge(ctx, '/api/pizzas/community');

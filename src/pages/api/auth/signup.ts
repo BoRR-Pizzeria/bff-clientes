@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getEnv } from '@/lib/env';
 import { anonClient } from '@/lib/supabase';
-import { json, error, readJson } from '@/lib/http';
+import { json, error, readJson, supabaseError } from '@/lib/http';
 
 export const prerender = false;
 
@@ -15,7 +15,7 @@ export const POST: APIRoute = async (ctx) => {
     email: body.email,
     password: body.password,
   });
-  if (e) return error(e.message, 400);
+  if (e) return supabaseError(e, 'auth/signup');
 
   return json({ user: data.user, session: data.session });
 };

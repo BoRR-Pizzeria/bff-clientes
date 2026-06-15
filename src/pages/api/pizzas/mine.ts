@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getEnv } from '@/lib/env';
 import { userClient } from '@/lib/supabase';
-import { json, error, getBearer } from '@/lib/http';
+import { json, error, getBearer, supabaseError } from '@/lib/http';
 import { RecipeSchema, type Recipe } from '@/lib/recipe';
 
 export const prerender = false;
@@ -25,7 +25,7 @@ export const GET: APIRoute = async (ctx) => {
     .order('created_at', { ascending: false })
     .limit(30);
 
-  if (e) return error(e.message, 500);
+  if (e) return supabaseError(e, 'pizzas/mine');
 
   const pizzas = (data ?? []).map((p) => {
     const parsed = RecipeSchema.safeParse(p.recipe);

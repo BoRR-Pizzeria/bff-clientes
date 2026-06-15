@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { getEnv } from '@/lib/env';
 import { userClient } from '@/lib/supabase';
-import { json, error, getBearer, readJson } from '@/lib/http';
+import { json, error, getBearer, readJson, supabaseError } from '@/lib/http';
 import type { Database } from '@/types/db';
 
 export const prerender = false;
@@ -63,7 +63,8 @@ export const POST: APIRoute = async (ctx) => {
     .select('id')
     .single();
 
-  if (oErr || !order) return error(oErr?.message ?? 'No se pudo crear el pedido.', 500);
+  if (oErr) return supabaseError(oErr, 'orders/create');
+  if (!order) return error('No se pudo crear el pedido.', 500);
 
   const rows: OrderItemInsert[] = items.map((it) => ({
     order_id: order.id,
@@ -74,7 +75,7 @@ export const POST: APIRoute = async (ctx) => {
   }));
 
   const { error: iErr } = await supabase.from('order_items').insert(rows);
-  if (iErr) return error(`Pedido creado pero fallaron los items: ${iErr.message}`, 500);
+  if (iErr) return supabaseError(iErr, 'orders/items');
 
   return json({ id: order.id }, { status: 201 });
 };
