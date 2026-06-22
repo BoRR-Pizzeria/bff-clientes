@@ -50,7 +50,7 @@ Se usa la **Cache API** de Workers (`caches.default`) vía `src/lib/cache.ts`:
 Topología local sobre ZeroTier (IPs fijas):
 
 ```
-Front 10.144.0.3:4321  ──PUBLIC_BFF_URL──►  BFF 10.144.0.2:8788  ──SUPABASE_URL──►  Supa 10.144.0.1:54321
+Front 10.144.0.3:4322  ──PUBLIC_BFF_URL──►  BFF 10.144.0.2:8788  ──SUPABASE_URL──►  Supa 10.144.0.1:54321
    (FFBORR, astro dev)                     (este repo, wrangler)                  (supabase CLI: data+auth)
 ```
 
@@ -66,7 +66,7 @@ npm run dev:zt              # astro build + wrangler pages dev ./dist --ip 0.0.0
 `10.144.0.2:8788` desde la malla. Para iterar sin cache, `npm run dev` (astro dev, Node).
 
 - **Supabase**: `PUBLIC_SUPABASE_URL=http://10.144.0.1:54321` + anon key del CLI (ver `.env.example`).
-- **CORS**: `FRONT_ORIGIN=http://10.144.0.3:4321` (en `wrangler.jsonc` → `vars`, y en `.dev.vars`).
+- **CORS**: `FRONT_ORIGIN=http://10.144.0.3:4322` (en `wrangler.jsonc` → `vars`, y en `.dev.vars`).
 
 ## Deploy
 

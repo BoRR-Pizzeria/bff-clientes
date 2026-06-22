@@ -12,6 +12,6 @@
   // estas son los defaults de dev sobre la malla ZeroTier.
   // FRONT_ORIGIN = origen del front (FFBORR) para CORS.
   "vars": {
-    "FRONT_ORIGIN": "http://10.144.0.3:4321"
+    "FRONT_ORIGIN": "http://10.144.0.3:4322"
   }
 }

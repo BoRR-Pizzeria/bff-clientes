@@ -2,7 +2,7 @@
   Levanta el BFFBORR sobre la malla ZeroTier de desarrollo.
 
   Topologia (ver README.md):
-    Front 10.144.0.3:4321  --PUBLIC_BFF_URL-->  BFF 10.144.0.2:8788  --SUPABASE_URL-->  Supa 10.144.0.1:54321
+    Front 10.144.0.3:4322  --PUBLIC_BFF_URL-->  BFF 10.144.0.2:8788  --SUPABASE_URL-->  Supa 10.144.0.1:54321
 
   Uso:
     .\scripts\start-bff.ps1

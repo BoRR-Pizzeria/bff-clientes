@@ -2,12 +2,12 @@
   "info": {
     "_postman_id": "8f1f0a2e-2b3a-4f6a-9c4a-6e2f0b1a7d10",
     "name": "BFFBORR (malla ZeroTier dev)",
-    "description": "Coleccion para probar el gateway BFFBORR sobre la malla ZeroTier de desarrollo.\n\nTopologia:\nFront 10.144.0.3:4321 -> BFF 10.144.0.2:8788 -> Supabase 10.144.0.1:54321\n\nFlujo sugerido: Auth > Login (completa accessToken/refreshToken solo) -> Pizzas (usuario) > Create Pizza (completa pizzaId solo) -> Pizzas (usuario) > Publish Pizza.\n\n`shopId` no lo expone este BFF (no hay endpoint de shops); completalo a mano antes de probar Orders.",
+    "description": "Coleccion para probar el gateway BFFBORR sobre la malla ZeroTier de desarrollo.\n\nTopologia:\nFront 10.144.0.3:4322 -> BFF 10.144.0.2:8788 -> Supabase 10.144.0.1:54321\n\nFlujo sugerido: Auth > Login (completa accessToken/refreshToken solo) -> Pizzas (usuario) > Create Pizza (completa pizzaId solo) -> Pizzas (usuario) > Publish Pizza.\n\n`shopId` no lo expone este BFF (no hay endpoint de shops); completalo a mano antes de probar Orders.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://10.144.0.2:8788", "type": "string" },
-    { "key": "frontOrigin", "value": "http://10.144.0.3:4321", "type": "string" },
+    { "key": "frontOrigin", "value": "http://10.144.0.3:4322", "type": "string" },
     { "key": "email", "value": "demo@borr.test", "type": "string" },
     { "key": "password", "value": "Demo1234!", "type": "string" },
     { "key": "accessToken", "value": "", "type": "string" },
