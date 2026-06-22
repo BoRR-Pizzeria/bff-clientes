@@ -1,0 +1,364 @@
+{
+  "info": {
+    "_postman_id": "8f1f0a2e-2b3a-4f6a-9c4a-6e2f0b1a7d10",
+    "name": "BFFBORR (malla ZeroTier dev)",
+    "description": "Coleccion para probar el gateway BFFBORR sobre la malla ZeroTier de desarrollo.\n\nTopologia:\nFront 10.144.0.3:4321 -> BFF 10.144.0.2:8788 -> Supabase 10.144.0.1:54321\n\nFlujo sugerido: Auth > Login (completa accessToken/refreshToken solo) -> Pizzas (usuario) > Create Pizza (completa pizzaId solo) -> Pizzas (usuario) > Publish Pizza.\n\n`shopId` no lo expone este BFF (no hay endpoint de shops); completalo a mano antes de probar Orders.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://10.144.0.2:8788", "type": "string" },
+    { "key": "frontOrigin", "value": "http://10.144.0.3:4321", "type": "string" },
+    { "key": "email", "value": "demo@borr.test", "type": "string" },
+    { "key": "password", "value": "Demo1234!", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "pizzaId", "value": "", "type": "string" },
+    { "key": "shopId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Publico (cacheado)",
+      "item": [
+        {
+          "name": "GET /api/ingredients",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ingredients",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ingredients"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/pizzas/house",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pizzas/house",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pizzas", "house"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/pizzas/community",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pizzas/community",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pizzas", "community"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/pizzas/:id",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pizzas/{{pizzaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pizzas", "{{pizzaId}}"]
+            },
+            "description": "Sin Authorization solo devuelve la pizza si es publica (RLS)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /api/auth/signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.session) {",
+                  "  pm.collectionVariables.set('accessToken', data.session.access_token);",
+                  "  pm.collectionVariables.set('refreshToken', data.session.refresh_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signup"]
+            },
+            "description": "Si la confirmacion de email esta deshabilitada en el Supabase local, devuelve session de una. Si no, hay que loguear despues de confirmar."
+          }
+        },
+        {
+          "name": "POST /api/auth/login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.session) {",
+                  "  pm.collectionVariables.set('accessToken', data.session.access_token);",
+                  "  pm.collectionVariables.set('refreshToken', data.session.refresh_token);",
+                  "  console.log('accessToken/refreshToken guardados en variables de coleccion');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/auth/session",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "session"]
+            },
+            "description": "Whoami: valida el accessToken guardado por Login/Signup."
+          }
+        },
+        {
+          "name": "POST /api/auth/refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.session) {",
+                  "  pm.collectionVariables.set('accessToken', data.session.access_token);",
+                  "  pm.collectionVariables.set('refreshToken', data.session.refresh_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pizzas (usuario)",
+      "item": [
+        {
+          "name": "GET /api/pizzas/mine",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pizzas/mine",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pizzas", "mine"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/pizzas (crear)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.id) {",
+                  "  pm.collectionVariables.set('pizzaId', data.id);",
+                  "  console.log('pizzaId guardado:', data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipe\": {\n    \"baseId\": \"classic\",\n    \"size\": \"M\",\n    \"version\": 2,\n    \"items\": [\n      { \"kind\": \"stage\" },\n      { \"kind\": \"ing\", \"ingredientId\": \"mozza\", \"qty\": 1 },\n      { \"kind\": \"ing\", \"ingredientId\": \"salsa\", \"qty\": 1 }\n    ]\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pizzas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pizzas"]
+            },
+            "description": "Crea con is_public=false. Guarda el id devuelto en {{pizzaId}}."
+          }
+        },
+        {
+          "name": "PATCH /api/pizzas/:id (publicar)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_public\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pizzas/{{pizzaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pizzas", "{{pizzaId}}"]
+            },
+            "description": "Usa el {{pizzaId}} guardado por 'POST /api/pizzas (crear)'. Purga la cache de /api/pizzas/community."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "POST /api/orders (crear)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shop_id\": \"{{shopId}}\",\n  \"items\": [\n    {\n      \"pizza_id\": null,\n      \"qty\": 1,\n      \"unit_price_cents\": 250000,\n      \"recipe_snapshot\": { \"baseId\": \"classic\", \"size\": \"M\", \"version\": 2, \"items\": [] }\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "shop_id es un uuid de la tabla shops en Supabase; este BFF no tiene endpoint para listarlas, completa {{shopId}} a mano (p.ej. consultando la DB o el REST de Supabase directo)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "CORS",
+      "item": [
+        {
+          "name": "OPTIONS preflight /api/health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "OPTIONS",
+            "header": [
+              { "key": "Origin", "value": "{{frontOrigin}}" },
+              { "key": "Access-Control-Request-Method", "value": "GET" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Debe devolver 204 con Access-Control-Allow-Origin: {{frontOrigin}}."
+          }
+        }
+      ]
+    }
+  ]
+}
