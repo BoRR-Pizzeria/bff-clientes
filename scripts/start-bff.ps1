@@ -9,7 +9,7 @@
 #>
 
 param(
-    [string]$FrontOrigin = 'http://10.144.0.3:4321'
+    [string]$FrontOrigin = 'http://10.144.0.3:4322'
 )
 
 $ErrorActionPreference = 'Stop'
