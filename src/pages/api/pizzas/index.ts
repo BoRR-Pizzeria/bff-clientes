@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getEnv } from '@/lib/env';
 import { userClient } from '@/lib/supabase';
-import { json, error, getBearer, readJson } from '@/lib/http';
+import { json, error, getBearer, readJson, supabaseError } from '@/lib/http';
 import { RecipeSchema } from '@/lib/recipe';
 
 export const prerender = false;
@@ -40,7 +40,8 @@ export const POST: APIRoute = async (ctx) => {
     .select('id')
     .single();
 
-  if (e || !data) return error(e?.message ?? 'No se pudo guardar la pizza.', 500);
+  if (e) return supabaseError(e, 'pizzas/create');
+  if (!data) return error('No se pudo guardar la pizza.', 500);
 
   return json({ id: data.id }, { status: 201 });
 };
