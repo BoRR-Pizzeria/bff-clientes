@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "8f1f0a2e-2b3a-4f6a-9c4a-6e2f0b1a7d10",
     "name": "BFFBORR (malla ZeroTier dev)",
-    "description": "Coleccion para probar el gateway BFFBORR sobre la malla ZeroTier de desarrollo.\n\nTopologia:\nFront 10.144.0.3:4322 -> BFF 10.144.0.2:8788 -> Supabase 10.144.0.1:54321\n\nFlujo sugerido: Auth > Login (completa accessToken/refreshToken solo) -> Pizzas (usuario) > Create Pizza (completa pizzaId solo) -> Pizzas (usuario) > Publish Pizza.\n\n`shopId` no lo expone este BFF (no hay endpoint de shops); completalo a mano antes de probar Orders.",
+    "description": "Coleccion para probar el gateway BFFBORR sobre la malla ZeroTier de desarrollo.\n\nTopologia:\nFront 10.144.0.3:4322 -> BFF 10.144.0.2:8788 -> Supabase 10.144.0.1:54321\n\nFlujo sugerido: Auth > Login (o Signup anonimo) -> Publico > GET /api/shops (completa shopId) -> Pizzas (usuario) > Create + Publish -> Orders > Create.\n\nEl BFF habla con Supabase por fetch (sin supabase-js): REST para reads/writes, RPC place_order para pedidos, GoTrue para auth.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -48,6 +48,35 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "ingredients"]
             }
+          }
+        },
+        {
+          "name": "GET /api/shops",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.shops && d.shops[0]) {",
+                  "  pm.collectionVariables.set('shopId', d.shops[0].id);",
+                  "  console.log('shopId:', d.shops[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/shops",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "shops"]
+            },
+            "description": "Sucursales activas. Guarda la primera en {{shopId}} para usarla en Orders."
           }
         },
         {
@@ -127,6 +156,36 @@
               "path": ["api", "auth", "signup"]
             },
             "description": "Si la confirmacion de email esta deshabilitada en el Supabase local, devuelve session de una. Si no, hay que loguear despues de confirmar."
+          }
+        },
+        {
+          "name": "POST /api/auth/anon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.session) {",
+                  "  pm.collectionVariables.set('accessToken', data.session.access_token);",
+                  "  pm.collectionVariables.set('refreshToken', data.session.refresh_token);",
+                  "  console.log('sesion anonima:', data.user && data.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/anon",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "anon"]
+            },
+            "description": "Sign-in anonimo: devuelve session de un usuario is_anonymous=true para pedir sin login. Guarda accessToken/refreshToken. Requiere enable_anonymous_sign_ins en Supabase."
           }
         },
         {
@@ -325,7 +384,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"shop_id\": \"{{shopId}}\",\n  \"items\": [\n    {\n      \"pizza_id\": null,\n      \"qty\": 1,\n      \"unit_price_cents\": 250000,\n      \"recipe_snapshot\": { \"baseId\": \"classic\", \"size\": \"M\", \"version\": 2, \"items\": [] }\n    }\n  ]\n}",
+              "raw": "{\n  \"shop_id\": \"{{shopId}}\",\n  \"notes\": \"Sin picante\",\n  \"items\": [\n    {\n      \"pizza_id\": null,\n      \"qty\": 2,\n      \"recipe_snapshot\": { \"baseId\": \"classic\", \"size\": \"M\", \"version\": 2, \"items\": [\n        { \"kind\": \"ing\", \"ingredientId\": \"masa\", \"qty\": 1 },\n        { \"kind\": \"ing\", \"ingredientId\": \"salsa\", \"qty\": 1 },\n        { \"kind\": \"ing\", \"ingredientId\": \"mozza\", \"qty\": 1 }\n      ] }\n    }\n  ]\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -333,7 +392,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "orders"]
             },
-            "description": "shop_id es un uuid de la tabla shops en Supabase; este BFF no tiene endpoint para listarlas, completa {{shopId}} a mano (p.ej. consultando la DB o el REST de Supabase directo)."
+            "description": "Crea el pedido vía el RPC place_order. NO se manda unit_price_cents: el back lo calcula desde cada recipe_snapshot. Requiere Bearer (logueado o anonimo: corré antes 'POST /api/auth/anon' o 'login'). {{shopId}} lo completa 'GET /api/shops'. payment_method = TODO."
           }
         }
       ]
