@@ -71,6 +71,13 @@ export interface SanitizedError {
   status: number;
 }
 
+/** SQLSTATE de Postgres/PostgREST: 5 caracteres alfanuméricos en mayúsculas
+ * (p.ej. `23505`, `PGRST116`). Los códigos de GoTrue Auth (`user_already_exists`,
+ * `invalid_credentials`, etc.) son snake_case y nunca matchean este patrón —
+ * así se distingue un PostgrestError de un AuthError, que también tiene `code`.
+ */
+const SQLSTATE_RE = /^[0-9A-Z]+$/;
+
 /**
  * Convierte un error de Supabase (PostgrestError o AuthError) en un mensaje
  * seguro para el cliente y loggea los detalles internamente.
@@ -85,8 +92,10 @@ export function sanitizeSupabaseError(e: unknown): SanitizedError {
 
   const err = e as PostgrestLike;
 
-  // PostgrestError: siempre tiene propiedad `code` (string)
-  if (typeof err.code === 'string') {
+  // PostgrestError: `code` es un SQLSTATE/código PostgREST (mayúsculas/dígitos).
+  // AuthError también tiene `code` (snake_case, p.ej. `user_already_exists`):
+  // cae al chequeo por mensaje de abajo.
+  if (typeof err.code === 'string' && SQLSTATE_RE.test(err.code)) {
     return POSTGREST_MAP[err.code] ?? { message: 'Error interno del servidor.', status: 500 };
   }
 

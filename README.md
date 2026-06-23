@@ -11,6 +11,8 @@ Parte del split en 3 repos:
 
 Astro 5 (`output: 'server'`) + `@astrojs/cloudflare`. API pura: sin UI. Endpoints en `src/pages/api/*`.
 
+**Sin `@supabase/supabase-js`**: el BFF habla con Supabase por `fetch` plano (PostgREST `/rest/v1`, RPC `/rest/v1/rpc`, GoTrue `/auth/v1`) vía `src/lib/supabase.ts` (`rest` / `rpc` / `gotrue` / `jwtSub`). Más liviano y Cloudflare-native; la RLS sigue siendo la autoridad.
+
 ## Endpoints
 
 ### Públicos (anon, cacheados con Cache API)
@@ -18,14 +20,17 @@ Astro 5 (`output: 'server'`) + `@astrojs/cloudflare`. API pura: sin UI. Endpoint
 |---|---|---|
 | GET | `/api/health` | — |
 | GET | `/api/ingredients` | 600 / 3600 |
+| GET | `/api/shops` | 300 / 3600 |
 | GET | `/api/pizzas/house` | 300 / 3600 |
 | GET | `/api/pizzas/community` | 60 / 600 (purga al publicar) |
 | GET | `/api/pizzas/:id` | 120 / 600 (sólo si es pública) |
 
-### Auth (proxy a Supabase Auth)
-`POST /api/auth/signup` · `POST /api/auth/login` · `POST /api/auth/logout` · `POST /api/auth/refresh` · `GET /api/auth/session`
+`/api/pizzas/house` y `/api/pizzas/community` leen las vistas `pizzas_house_feed` / `pizzas_community_feed` (BSBORR 0006): `price_cents` y autor vienen calculados del back, el BFF sólo proxea una query.
 
-Login/refresh devuelven `{ user, session }`. El front guarda `session.access_token`/`refresh_token` y manda `Authorization: Bearer <access_token>` en el resto.
+### Auth (proxy a Supabase Auth)
+`POST /api/auth/signup` · `POST /api/auth/anon` · `POST /api/auth/login` · `POST /api/auth/logout` · `POST /api/auth/refresh` · `GET /api/auth/session`
+
+Login/refresh/anon devuelven `{ user, session }`. El front guarda `session.access_token`/`refresh_token` y manda `Authorization: Bearer <access_token>` en el resto. `/api/auth/anon` crea una sesión anónima (Supabase anonymous sign-in) para pedir sin login.
 
 ### User-scoped (requieren `Authorization: Bearer`)
 | Método | Ruta | Qué hace |
@@ -33,9 +38,9 @@ Login/refresh devuelven `{ user, session }`. El front guarda `session.access_tok
 | GET | `/api/pizzas/mine` | pizzas del usuario |
 | POST | `/api/pizzas` | crea pizza (valida `RecipeSchema`) |
 | PATCH | `/api/pizzas/:id` | nombre/tags y/o `is_public` (purga cache community) |
-| POST | `/api/orders` | crea pedido + items (totales los completan triggers DB) |
+| POST | `/api/orders` | crea pedido vía RPC `place_order` (precio server-side, atómico) |
 
-> `POST /api/orders` está implementado pero aún sin UI de carrito en el front (TODO de producto).
+> `POST /api/orders` acepta usuario logueado **o anónimo** (el front hace `/api/auth/anon` antes de pedir). El cliente manda `{ shop_id, items:[{ pizza_id?, qty, recipe_snapshot }], notes? }`; el `unit_price_cents` lo calcula el back desde cada `recipe_snapshot`. La forma de pago queda como TODO (`payment_method` nullable).
 
 ## Cache
 
@@ -50,7 +55,7 @@ Se usa la **Cache API** de Workers (`caches.default`) vía `src/lib/cache.ts`:
 Topología local sobre ZeroTier (IPs fijas):
 
 ```
-Front 10.144.0.3:4321  ──PUBLIC_BFF_URL──►  BFF 10.144.0.2:8788  ──SUPABASE_URL──►  Supa 10.144.0.1:54321
+Front 10.144.0.3:4322  ──PUBLIC_BFF_URL──►  BFF 10.144.0.2:8788  ──SUPABASE_URL──►  Supa 10.144.0.1:54321
    (FFBORR, astro dev)                     (este repo, wrangler)                  (supabase CLI: data+auth)
 ```
 
@@ -66,7 +71,7 @@ npm run dev:zt              # astro build + wrangler pages dev ./dist --ip 0.0.0
 `10.144.0.2:8788` desde la malla. Para iterar sin cache, `npm run dev` (astro dev, Node).
 
 - **Supabase**: `PUBLIC_SUPABASE_URL=http://10.144.0.1:54321` + anon key del CLI (ver `.env.example`).
-- **CORS**: `FRONT_ORIGIN=http://10.144.0.3:4321` (en `wrangler.jsonc` → `vars`, y en `.dev.vars`).
+- **CORS**: `FRONT_ORIGIN=http://10.144.0.3:4322` (en `wrangler.jsonc` → `vars`, y en `.dev.vars`).
 
 ## Deploy
 
