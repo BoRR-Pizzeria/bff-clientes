@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getEnv } from '@/lib/env';
-import { userClient } from '@/lib/supabase';
-import { json, error, getBearer, readJson, supabaseError } from '@/lib/http';
+import { rest, jwtSub } from '@/lib/supabase';
+import { json, error, getBearer, readJson, fail } from '@/lib/http';
 import { RecipeSchema } from '@/lib/recipe';
 
 export const prerender = false;
@@ -15,6 +15,9 @@ export const POST: APIRoute = async (ctx) => {
   const jwt = getBearer(ctx.request);
   if (!jwt) return error('No autenticado', 401);
 
+  const sub = jwtSub(jwt);
+  if (!sub) return error('Sesión inválida', 401);
+
   const body = await readJson<{ recipe?: unknown }>(ctx.request);
   if (!body) return error('JSON inválido', 400);
 
@@ -23,25 +26,28 @@ export const POST: APIRoute = async (ctx) => {
     return error(`Recipe inválido: ${parsed.error.issues[0]?.message ?? 'desconocido'}`, 422);
   }
 
-  const supabase = userClient(getEnv(ctx.locals), jwt);
-  const { data: userData } = await supabase.auth.getUser(jwt);
-  if (!userData.user) return error('Sesión inválida', 401);
+  const { data, error: e } = await rest<{ id: string }[]>(
+    getEnv(ctx.locals),
+    'pizzas?select=id',
+    {
+      method: 'POST',
+      jwt,
+      prefer: 'return=representation',
+      body: {
+        user_id: sub,
+        origin: 'user',
+        is_public: false,
+        recipe: parsed.data,
+        base_id: parsed.data.baseId,
+        size: parsed.data.size,
+      },
+    },
+    'pizzas/create'
+  );
+  if (e) return fail(e);
 
-  const { data, error: e } = await supabase
-    .from('pizzas')
-    .insert({
-      user_id: userData.user.id,
-      origin: 'user',
-      is_public: false,
-      recipe: parsed.data,
-      base_id: parsed.data.baseId,
-      size: parsed.data.size,
-    })
-    .select('id')
-    .single();
+  const id = data?.[0]?.id;
+  if (!id) return error('No se pudo guardar la pizza.', 500);
 
-  if (e) return supabaseError(e, 'pizzas/create');
-  if (!data) return error('No se pudo guardar la pizza.', 500);
-
-  return json({ id: data.id }, { status: 201 });
+  return json({ id }, { status: 201 });
 };
