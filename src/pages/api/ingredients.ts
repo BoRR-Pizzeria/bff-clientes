@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getEnv } from '@/lib/env';
-import { anonClient } from '@/lib/supabase';
-import { json, error, supabaseError } from '@/lib/http';
+import { rest } from '@/lib/supabase';
+import { json, fail } from '@/lib/http';
 import { withCache } from '@/lib/cache';
 
 export const prerender = false;
@@ -9,15 +9,13 @@ export const prerender = false;
 /** Catálogo de ingredientes activos. Público y muy cacheable. */
 export const GET: APIRoute = (ctx) =>
   withCache(ctx, async () => {
-    const supabase = anonClient(getEnv(ctx.locals));
-    const { data, error: e } = await supabase
-      .from('ingredients')
-      .select('id, name, category, color, price_cents, unit, step, default_qty, is_base, active')
-      .eq('active', true)
-      .order('category', { ascending: true })
-      .order('name', { ascending: true });
-
-    if (e) return supabaseError(e, 'ingredients');
+    const { data, error } = await rest<unknown[]>(
+      getEnv(ctx.locals),
+      'ingredients?select=id,name,category,color,price_cents,unit,step,default_qty,is_base,active&active=eq.true&order=category.asc,name.asc',
+      {},
+      'ingredients'
+    );
+    if (error) return fail(error);
 
     return json(
       { ingredients: data ?? [] },

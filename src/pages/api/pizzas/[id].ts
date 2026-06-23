@@ -1,11 +1,18 @@
 import type { APIRoute } from 'astro';
 import { getEnv } from '@/lib/env';
-import { anonClient, userClient } from '@/lib/supabase';
-import { json, error, getBearer, readJson, supabaseError } from '@/lib/http';
+import { rest } from '@/lib/supabase';
+import { json, error, getBearer, readJson, fail } from '@/lib/http';
 import { withCache, purge } from '@/lib/cache';
 import { RecipeSchema } from '@/lib/recipe';
 
 export const prerender = false;
+
+interface PizzaRow {
+  id: string;
+  name: string | null;
+  recipe: unknown;
+  is_public: boolean;
+}
 
 /**
  * Lee una pizza por id. Con Bearer, RLS deja ver la privada propia; sin token,
@@ -17,29 +24,28 @@ export const GET: APIRoute = (ctx) =>
     if (!id) return error('id requerido', 400);
 
     const jwt = getBearer(ctx.request);
-    const env = getEnv(ctx.locals);
-    const supabase = jwt ? userClient(env, jwt) : anonClient(env);
+    const { data, error: e } = await rest<PizzaRow[]>(
+      getEnv(ctx.locals),
+      `pizzas?id=eq.${id}&select=id,name,recipe,is_public&limit=1`,
+      { jwt },
+      'pizzas/[id] GET'
+    );
+    if (e) return fail(e);
 
-    const { data, error: e } = await supabase
-      .from('pizzas')
-      .select('id, name, recipe, is_public')
-      .eq('id', id)
-      .single();
+    const row = data?.[0];
+    if (!row) return error('No se encontró la pizza.', 404);
 
-    if (e) return supabaseError(e, 'pizzas/[id] GET');
-    if (!data) return error('No se encontró la pizza.', 404);
-
-    const parsed = RecipeSchema.safeParse(data.recipe);
+    const parsed = RecipeSchema.safeParse(row.recipe);
     if (!parsed.success) {
       return error(`Recipe inválido: ${parsed.error.issues[0]?.message ?? 'unknown'}`, 422);
     }
 
-    const init = data.is_public
+    const init = row.is_public
       ? { headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=600' } }
       : undefined;
 
     return json(
-      { pizza: { id: data.id, name: data.name, recipe: parsed.data, is_public: data.is_public } },
+      { pizza: { id: row.id, name: row.name, recipe: parsed.data, is_public: row.is_public } },
       init
     );
   });
@@ -65,9 +71,13 @@ export const PATCH: APIRoute = async (ctx) => {
   if (typeof body.is_public === 'boolean') patch.is_public = body.is_public;
   if (Object.keys(patch).length === 0) return error('Nada para actualizar', 400);
 
-  const supabase = userClient(getEnv(ctx.locals), jwt);
-  const { error: e } = await supabase.from('pizzas').update(patch).eq('id', id);
-  if (e) return supabaseError(e, 'pizzas/[id] PATCH');
+  const { error: e } = await rest(
+    getEnv(ctx.locals),
+    `pizzas?id=eq.${id}`,
+    { method: 'PATCH', jwt, prefer: 'return=minimal', body: patch },
+    'pizzas/[id] PATCH'
+  );
+  if (e) return fail(e);
 
   if (typeof patch.is_public === 'boolean') {
     await purge(ctx, '/api/pizzas/community');

@@ -6,25 +6,22 @@ import { withCache } from '@/lib/cache';
 
 export const prerender = false;
 
-const COLUMNS = 'id,name,base_id,size,recipe,tags,preview_url,price_cents';
-
 /**
- * Pizzas de la casa. Lee la vista `pizzas_house_feed` (BSBORR migración 0006),
- * que ya filtra origin='house'/públicas/no borradas y calcula `price_cents` en
- * el back — el BFF sólo proxea una query.
+ * Sucursales activas. Público y cacheable. El front lo usa para resolver el
+ * `shop_id` del pedido (antes no había forma de obtener una sucursal desde el BFF).
  */
 export const GET: APIRoute = (ctx) =>
   withCache(ctx, async () => {
     const { data, error } = await rest<unknown[]>(
       getEnv(ctx.locals),
-      `pizzas_house_feed?select=${COLUMNS}&order=created_at.asc`,
+      'shops?active=eq.true&select=id,name,address&order=name.asc',
       {},
-      'pizzas/house'
+      'shops'
     );
     if (error) return fail(error);
 
     return json(
-      { pizzas: data ?? [] },
+      { shops: data ?? [] },
       { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } }
     );
   });
