@@ -15,6 +15,10 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 
+# El header Origin del navegador nunca trae '/' final; si FRONT_ORIGIN lo tiene,
+# Access-Control-Allow-Origin no matchea y el browser bloquea la respuesta por CORS.
+$FrontOrigin = $FrontOrigin.TrimEnd('/')
+
 $ztAddr = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
     Where-Object { $_.InterfaceAlias -like 'ZeroTier*' } |
     Select-Object -First 1 -ExpandProperty IPAddress
@@ -35,8 +39,14 @@ try {
     }
 
     if (-not (Test-Path '.dev.vars')) {
-        Write-Host "Creando .dev.vars desde .env.example (+ FRONT_ORIGIN)..." -ForegroundColor Yellow
+        Write-Host "Creando .dev.vars desde .env.example..." -ForegroundColor Yellow
         Copy-Item '.env.example' '.dev.vars'
+    }
+
+    if (Select-String -Path '.dev.vars' -Pattern '^FRONT_ORIGIN=' -Quiet) {
+        (Get-Content '.dev.vars') -replace '^FRONT_ORIGIN=.*$', "FRONT_ORIGIN=$FrontOrigin" |
+            Set-Content '.dev.vars'
+    } else {
         Add-Content '.dev.vars' "FRONT_ORIGIN=$FrontOrigin"
     }
 
