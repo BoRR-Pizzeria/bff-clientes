@@ -10,6 +10,7 @@ BFF de la app de clientes de BoRR: Worker de Cloudflare (Astro `output: 'server'
 
 ## Skills y MCP
 
+- Skills del dominio en [`.claude/skills/`](./.claude/skills/): `cloudflare`, `workers-best-practices`, `wrangler` — del repo oficial [cloudflare/skills](https://github.com/cloudflare/skills) (Apache-2.0), trackeadas en git; solo `.claude/settings.local.json` queda fuera.
 - MCP en [`.mcp.json`](./.mcp.json): `cloudflare-docs`, `cloudflare-bindings`, `supabase`, `postman` — el dominio de este repo es Cloudflare-native.
 - El BFF debe seguir siendo Cloudflare-native: Workers/Pages, Cache API, sin Express ni servidores propios.
 
