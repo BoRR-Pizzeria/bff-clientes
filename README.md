@@ -1,11 +1,11 @@
-# BFFBORR — Backend For Frontend (gateway Cloudflare)
+# bff-clientes — Backend For Frontend (gateway Cloudflare)
 
 Gateway del ecosistema **BoRR** sobre **Cloudflare Pages + Workers**. **Todo** el tráfico del front pasa por acá: expone sólo endpoints de cliente, reenvía el JWT del usuario a Supabase (RLS intacto) y **maneja la cache** de forma nativa (Cache API).
 
 Parte del split en 3 repos:
-- **FFBORR** — front (Astro + React islands), llama a este BFF.
-- **BFFBORR** — este repo (gateway).
-- **BSBORR** — backend Supabase (schema/RLS/migraciones).
+- **front-clientes-web** — front (Astro + React islands), llama a este BFF.
+- **bff-clientes** — este repo (gateway).
+- **backend-supabase** — backend Supabase (schema/RLS/migraciones).
 
 ## Stack
 
@@ -25,7 +25,7 @@ Astro 5 (`output: 'server'`) + `@astrojs/cloudflare`. API pura: sin UI. Endpoint
 | GET | `/api/pizzas/community` | 60 / 600 (purga al publicar) |
 | GET | `/api/pizzas/:id` | 120 / 600 (sólo si es pública) |
 
-`/api/pizzas/house` y `/api/pizzas/community` leen las vistas `pizzas_house_feed` / `pizzas_community_feed` (BSBORR 0006): `price_cents` y autor vienen calculados del back, el BFF sólo proxea una query.
+`/api/pizzas/house` y `/api/pizzas/community` leen las vistas `pizzas_house_feed` / `pizzas_community_feed` (backend-supabase 0006): `price_cents` y autor vienen calculados del back, el BFF sólo proxea una query.
 
 ### Auth (proxy a Supabase Auth)
 `POST /api/auth/signup` · `POST /api/auth/anon` · `POST /api/auth/login` · `POST /api/auth/logout` · `POST /api/auth/refresh` · `GET /api/auth/session`
@@ -56,7 +56,7 @@ Topología local sobre ZeroTier (IPs fijas):
 
 ```
 Front 10.144.0.3:4322  ──PUBLIC_BFF_URL──►  BFF 10.144.0.2:8788  ──SUPABASE_URL──►  Supa 10.144.0.1:54321
-   (FFBORR, astro dev)                     (este repo, wrangler)                  (supabase CLI: data+auth)
+   (front-clientes-web, astro dev)                     (este repo, wrangler)                  (supabase CLI: data+auth)
 ```
 
 ```bash
@@ -80,3 +80,8 @@ npm run deploy   # astro build + wrangler pages deploy ./dist
 ```
 
 Setear en Pages → Settings → Environment variables: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`, `FRONT_ORIGIN` (origen real del front).
+
+## Documentación
+
+- Este repo documenta sus endpoints, cache y auth en este README.
+- [Docs de la organización](https://github.com/BoRR-Pizzeria/.github/blob/main/docs/README.md) — arquitectura, dominios, flujos y ADRs ([ADR-0003: un BFF por aplicación](https://github.com/BoRR-Pizzeria/.github/blob/main/docs/adr/0003-un-bff-por-aplicacion.md)).
